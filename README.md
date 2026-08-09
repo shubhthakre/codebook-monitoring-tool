@@ -19,7 +19,45 @@ A lightweight health-check dashboard for servers, databases, Oracle, SQLite, and
 
 For production setup (services, reverse proxy, backups, Oracle client), see [DEPLOYMENT.md](./DEPLOYMENT.md).
 
-## Quick Start
+## Run with Docker
+
+Requires [Docker](https://docs.docker.com/get-docker/) and Docker Compose.
+
+```bash
+# Optional: enable email alerts
+cp backend/.env.example backend/.env   # Linux/macOS
+# copy backend\.env.example backend\.env   # Windows
+
+# Build images and start backend + frontend
+docker compose up --build -d
+
+# If `docker compose` is unavailable on your machine:
+# docker-compose up --build -d
+```
+
+| Service  | URL |
+|----------|-----|
+| Frontend | [http://localhost:3000](http://localhost:3000) |
+| Backend API | [http://localhost:8000](http://localhost:8000) |
+| API docs | [http://localhost:8000/docs](http://localhost:8000/docs) |
+
+Useful commands:
+
+```bash
+docker compose ps          # status
+docker compose logs -f     # follow logs
+docker compose down        # stop and remove containers
+```
+
+SQLite data is stored in the Docker volume `monitoring-data` (`MONITORING_DB_PATH=/data/monitoring.db` inside the backend container).
+
+Docker files:
+
+- `docker-compose.yml` — runs both services
+- `backend/Dockerfile` — FastAPI / Uvicorn
+- `frontend/Dockerfile` — Next.js (standalone production build)
+
+## Quick Start (local, without Docker)
 
 ### 1. Backend
 
@@ -122,7 +160,9 @@ On Windows, systemd monitors will report that Linux is required.
 ## Project Structure
 
 ```
+docker-compose.yml
 backend/
+  Dockerfile
   app/
     checkers/     # Health check implementations
     routers/      # API routes
@@ -130,6 +170,7 @@ backend/
     config.py     # Settings from environment / .env
     main.py       # FastAPI app entry
 frontend/
+  Dockerfile
   app/            # Next.js pages
   lib/api.ts      # API client + monitor type definitions
 ```

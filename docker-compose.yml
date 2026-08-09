@@ -1,0 +1,34 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    image: codebook-monitoring-backend:latest
+    container_name: codebook-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - monitoring-data:/data
+    env_file:
+      - path: ./backend/.env
+        required: false
+    environment:
+      MONITORING_DB_PATH: /data/monitoring.db
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        BACKEND_URL: http://backend:8000
+    image: codebook-monitoring-frontend:latest
+    container_name: codebook-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      BACKEND_URL: http://backend:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  monitoring-data:

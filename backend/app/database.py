@@ -1,7 +1,15 @@
+import os
+from pathlib import Path
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
-DATABASE_URL = "sqlite:///./monitoring.db"
+_db_path = Path(os.getenv("MONITORING_DB_PATH", "./monitoring.db")).expanduser()
+if not _db_path.is_absolute():
+    _db_path = Path.cwd() / _db_path
+_db_path.parent.mkdir(parents=True, exist_ok=True)
+
+DATABASE_URL = f"sqlite:///{_db_path.as_posix()}"
 
 engine = create_engine(
     DATABASE_URL,

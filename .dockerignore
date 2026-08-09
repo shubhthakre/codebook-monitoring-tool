@@ -1,0 +1,12 @@
+.git/
+**/venv/
+**/.venv/
+**/__pycache__/
+**/.next/
+**/node_modules/
+backend/.env
+backend/*.db
+backend/instantclient-*/
+backend/instantclient-*.zip
+**/*.md
+**/agent-transcripts/
