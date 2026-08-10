@@ -111,7 +111,7 @@ API docs: [http://localhost:8000/docs](http://localhost:8000/docs)
 | `mysql`    | host, port, database, user, password, query        |
 | `sqlite`   | path, query                                        |
 | `oracle`   | host, port, service_name, user, password, dsn      |
-| `systemd`  | unit, lines, since                                 |
+| `systemd`  | unit, lines, since, grep (optional PCRE via `journalctl --grep`) |
 
 ## Email Alerts
 

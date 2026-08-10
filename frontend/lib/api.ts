@@ -45,6 +45,7 @@ export interface SystemdLogs {
   active: boolean;
   since: string | null;
   until: string | null;
+  grep: string | null;
   count: number;
   lines: string[];
 }
@@ -116,12 +117,13 @@ export const api = {
     request<CheckResult[]>(`/monitors/${id}/history?limit=${limit}`),
   getLogs: (
     id: number,
-    opts?: { since?: string; until?: string; lines?: number }
+    opts?: { since?: string; until?: string; lines?: number; grep?: string }
   ) => {
     const params = new URLSearchParams();
     if (opts?.since) params.set("since", opts.since);
     if (opts?.until) params.set("until", opts.until);
     if (opts?.lines != null) params.set("lines", String(opts.lines));
+    if (opts?.grep != null) params.set("grep", opts.grep);
     const qs = params.toString();
     return request<SystemdLogs>(
       `/monitors/${id}/logs${qs ? `?${qs}` : ""}`
@@ -214,6 +216,11 @@ export const MONITOR_TYPES: {
       { key: "unit", label: "Unit Name", placeholder: "nginx.service", required: true },
       { key: "lines", label: "Lines", placeholder: "50" },
       { key: "since", label: "Since", placeholder: "1 hour ago" },
+      {
+        key: "grep",
+        label: "Grep filter",
+        placeholder: "error|warning (optional PCRE)",
+      },
     ],
   },
 ];

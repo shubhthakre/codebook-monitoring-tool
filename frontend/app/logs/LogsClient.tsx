@@ -39,6 +39,7 @@ export default function SystemdLogsPage() {
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
   const [lines, setLines] = useState(200);
+  const [grep, setGrep] = useState("");
   const [loading, setLoading] = useState(false);
   const [listLoading, setListLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,21 +52,25 @@ export default function SystemdLogsPage() {
 
   const selected = systemdMonitors.find((m) => m.id === selectedId) ?? null;
 
+  const grepFromMonitor = (m: Monitor | null | undefined) =>
+    typeof m?.config?.grep === "string" ? m.config.grep : "";
+
   useEffect(() => {
     api
       .getMonitors()
       .then((list) => {
         setMonitors(list);
         const systemd = list.filter((m) => m.type === "systemd");
+        let next: Monitor | null = null;
         if (initialId) {
           const id = Number(initialId);
-          if (systemd.some((m) => m.id === id)) {
-            setSelectedId(id);
-          } else if (systemd.length > 0) {
-            setSelectedId(systemd[0].id);
-          }
+          next = systemd.find((m) => m.id === id) ?? systemd[0] ?? null;
         } else if (systemd.length > 0) {
-          setSelectedId(systemd[0].id);
+          next = systemd[0];
+        }
+        if (next) {
+          setSelectedId(next.id);
+          setGrep(grepFromMonitor(next));
         }
       })
       .catch((err) =>
@@ -95,7 +100,12 @@ export default function SystemdLogsPage() {
         since = presetSince(preset);
       }
 
-      const result = await api.getLogs(selectedId, { since, until, lines });
+      const result = await api.getLogs(selectedId, {
+        since,
+        until,
+        lines,
+        grep: grep.trim(),
+      });
       setLogs(result);
     } catch (err) {
       setLogs(null);
@@ -103,15 +113,14 @@ export default function SystemdLogsPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedId, preset, customFrom, customTo, lines]);
+  }, [selectedId, preset, customFrom, customTo, lines, grep]);
 
   useEffect(() => {
-    if (selectedId && preset !== "custom") {
-      void fetchLogs();
-    }
-    // Auto-fetch when service or non-custom preset changes
+    if (listLoading || !selectedId || preset === "custom") return;
+    void fetchLogs();
+    // Auto-fetch when service or non-custom preset changes (after list load)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId, preset]);
+  }, [selectedId, preset, listLoading]);
 
   return (
     <div className="container">
@@ -152,7 +161,12 @@ export default function SystemdLogsPage() {
               <label>Service</label>
               <select
                 value={selectedId ?? ""}
-                onChange={(e) => setSelectedId(Number(e.target.value))}
+                onChange={(e) => {
+                  const id = Number(e.target.value);
+                  setSelectedId(id);
+                  const m = systemdMonitors.find((x) => x.id === id);
+                  setGrep(grepFromMonitor(m));
+                }}
               >
                 {systemdMonitors.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -200,6 +214,29 @@ export default function SystemdLogsPage() {
                 onChange={(e) => setLines(Number(e.target.value) || 200)}
               />
             </div>
+
+            <div className="form-group" style={{ marginBottom: 0, minWidth: 220, flex: 1 }}>
+              <label>Grep filter</label>
+              <input
+                type="text"
+                value={grep}
+                placeholder="error|warning (optional)"
+                onChange={(e) => setGrep(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void fetchLogs();
+                }}
+              />
+            </div>
+
+            <button
+              type="button"
+              className="btn-primary btn-sm"
+              onClick={() => void fetchLogs()}
+              disabled={loading || !selectedId}
+              style={{ alignSelf: "flex-end" }}
+            >
+              {loading ? "Filtering..." : "Apply filter"}
+            </button>
           </div>
 
           {preset === "custom" && (
@@ -258,6 +295,12 @@ export default function SystemdLogsPage() {
                     <>
                       <span className="monitor-meta-sep">·</span>
                       <span>until {logs.until}</span>
+                    </>
+                  )}
+                  {logs.grep && (
+                    <>
+                      <span className="monitor-meta-sep">·</span>
+                      <span>grep {logs.grep}</span>
                     </>
                   )}
                 </>

@@ -23,6 +23,7 @@ async def fetch_journal_logs(
     lines: int = 100,
     since: str | None = None,
     until: str | None = None,
+    grep: str | None = None,
 ) -> dict[str, Any]:
     """Fetch journalctl logs for a unit. Raises ValueError on config errors."""
     if not unit:
@@ -36,6 +37,8 @@ async def fetch_journal_logs(
     journalctl = _resolve_bin(_JOURNALCTL, "journalctl")
     if not journalctl:
         raise RuntimeError("journalctl not found on this system")
+
+    pattern = (grep or "").strip() or None
 
     cmd = [
         journalctl,
@@ -51,6 +54,9 @@ async def fetch_journal_logs(
         cmd.extend(["--since", since])
     if until:
         cmd.extend(["--until", until])
+    if pattern:
+        # journalctl --grep uses PCRE; passed as argv (no shell)
+        cmd.extend(["--grep", pattern])
 
     proc = await asyncio.create_subprocess_exec(
         *cmd,
@@ -59,11 +65,20 @@ async def fetch_journal_logs(
     )
     stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=15)
 
+    err = stderr.decode(errors="replace").strip()
     if proc.returncode != 0:
-        err = stderr.decode(errors="replace").strip() or "journalctl failed"
-        raise RuntimeError(err)
+        # --grep with no matches often exits 1 with empty stderr
+        if pattern and proc.returncode == 1 and (
+            not err or "no entries" in err.lower()
+        ):
+            log_lines: list[str] = []
+        else:
+            raise RuntimeError(err or "journalctl failed")
+    else:
+        log_lines = stdout.decode(errors="replace").strip().splitlines()
+        if log_lines == [""]:
+            log_lines = []
 
-    log_lines = stdout.decode(errors="replace").strip().splitlines()
     is_active = await _check_unit_active(unit)
 
     return {
@@ -72,6 +87,7 @@ async def fetch_journal_logs(
         "active": is_active,
         "since": since,
         "until": until,
+        "grep": pattern,
         "count": len(log_lines[-lines:]),
     }
 
@@ -80,13 +96,14 @@ async def check_systemd(config: dict[str, Any]) -> CheckOutcome:
     unit = config.get("unit", "")
     lines = int(config.get("lines", 50))
     since = config.get("since", "1 hour ago")
+    grep = config.get("grep") or None
 
     if not unit:
         return CheckOutcome("down", "Systemd unit name is required (e.g. nginx.service)")
 
     start = time.perf_counter()
     try:
-        result = await fetch_journal_logs(unit, lines=lines, since=since)
+        result = await fetch_journal_logs(unit, lines=lines, since=since, grep=grep)
         elapsed = (time.perf_counter() - start) * 1000
         is_active = result["active"]
         log_lines = result["lines"]

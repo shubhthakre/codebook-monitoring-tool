@@ -132,6 +132,10 @@ async def get_systemd_logs(
         description='journalctl --until value, e.g. "2026-08-06 13:05:00"',
     ),
     lines: int = Query(200, ge=1, le=2000),
+    grep: str | None = Query(
+        None,
+        description="journalctl --grep pattern (PCRE). Omit to use monitor config.grep; pass empty to clear.",
+    ),
     db: Session = Depends(get_db),
 ):
     monitor = db.query(Monitor).filter(Monitor.id == monitor_id).first()
@@ -142,10 +146,20 @@ async def get_systemd_logs(
             status_code=400, detail="Logs endpoint is only available for systemd monitors"
         )
 
-    unit = (monitor.config or {}).get("unit", "")
+    config = monitor.config or {}
+    unit = config.get("unit", "")
+    # Explicit query param (including "") overrides config; missing param uses config default
+    if grep is None:
+        pattern = config.get("grep") or None
+    else:
+        pattern = grep.strip() or None
     try:
         result = await fetch_journal_logs(
-            unit, lines=lines, since=since or None, until=until or None
+            unit,
+            lines=lines,
+            since=since or None,
+            until=until or None,
+            grep=pattern,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -160,6 +174,7 @@ async def get_systemd_logs(
         active=result["active"],
         since=result.get("since"),
         until=result.get("until"),
+        grep=result.get("grep"),
         count=result["count"],
         lines=result["lines"],
     )

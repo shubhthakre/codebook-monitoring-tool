@@ -71,5 +71,6 @@ class SystemdLogsResponse(BaseModel):
     active: bool
     since: str | None = None
     until: str | None = None
+    grep: str | None = None
     count: int
     lines: list[str]
