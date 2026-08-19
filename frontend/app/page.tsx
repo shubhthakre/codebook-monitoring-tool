@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   api,
   CheckResult,
@@ -9,6 +9,7 @@ import {
   MONITOR_TYPES,
   MonitorType,
 } from "@/lib/api";
+import { useAdminUnlock } from "@/lib/useAdminUnlock";
 
 function StatusDot({ status }: { status: string }) {
   return <span className={`status-dot ${status}`} title={status} />;
@@ -317,23 +318,7 @@ export default function Dashboard() {
   const [detailMonitor, setDetailMonitor] = useState<Monitor | null>(null);
   const [checkingId, setCheckingId] = useState<number | null>(null);
   const [actionsOpenId, setActionsOpenId] = useState<number | null>(null);
-  const [addUnlocked, setAddUnlocked] = useState(false);
-  const titleClicksRef = useRef(0);
-  const titleClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const handleTitleClick = () => {
-    if (addUnlocked) return;
-    if (titleClickTimerRef.current) clearTimeout(titleClickTimerRef.current);
-    titleClicksRef.current += 1;
-    if (titleClicksRef.current >= 5) {
-      titleClicksRef.current = 0;
-      setAddUnlocked(true);
-      return;
-    }
-    titleClickTimerRef.current = setTimeout(() => {
-      titleClicksRef.current = 0;
-    }, 2000);
-  };
+  const { unlocked: addUnlocked, handleTitleClick } = useAdminUnlock();
 
   const refresh = useCallback(async () => {
     try {
@@ -409,6 +394,7 @@ export default function Dashboard() {
               Dashboard
             </Link>
             <Link href="/logs">Systemd Logs</Link>
+            {addUnlocked && <Link href="/settings">Settings</Link>}
           </nav>
           {addUnlocked && (
             <button className="btn-primary" onClick={() => setShowForm(true)}>

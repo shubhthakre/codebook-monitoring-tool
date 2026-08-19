@@ -804,6 +804,82 @@ a.btn-primary {
   animation: rise-in 0.35s ease both;
 }
 
+.success-banner {
+  background: var(--up-soft);
+  border: 1px solid rgba(26, 155, 92, 0.35);
+  color: #146b3f;
+  padding: 0.8rem 1rem;
+  border-radius: var(--radius-sm);
+  margin-bottom: 1rem;
+  font-weight: 550;
+  animation: rise-in 0.35s ease both;
+}
+
+.settings-card {
+  background: var(--surface-solid);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.5rem 1.6rem 1.35rem;
+  max-width: 720px;
+  box-shadow: var(--shadow);
+  animation: rise-in 0.5s ease both;
+}
+
+.settings-status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.35rem;
+}
+
+.settings-source {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.settings-section {
+  margin-bottom: 1.6rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--line);
+}
+
+.settings-section:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.settings-section h2 {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+  margin: 1rem 0 0.85rem;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.85rem;
+  font-size: 0.92rem;
+  font-weight: 550;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.checkbox-row input[type="checkbox"] {
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.settings-actions {
+  margin-top: 0.5rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--line);
+}
+
 .history-table {
   width: 100%;
   border-collapse: collapse;

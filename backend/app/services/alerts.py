@@ -5,7 +5,7 @@ import time
 from email.message import EmailMessage
 
 from ..checkers.base import CheckOutcome
-from ..config import Settings, get_settings
+from ..config import Settings
 from ..models import Monitor
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,10 @@ def _recipients(settings: Settings) -> list[str]:
 
 
 def alerts_configured(settings: Settings | None = None) -> bool:
-    settings = settings or get_settings()
+    if settings is None:
+        from .app_settings import get_effective_settings
+
+        settings = get_effective_settings()
     return bool(
         settings.alert_enabled
         and settings.smtp_host
@@ -95,7 +98,9 @@ async def send_status_alert(
     kind: str,
 ) -> None:
     """Send a down or recovery email. Never raises to the caller."""
-    settings = get_settings()
+    from .app_settings import get_effective_settings
+
+    settings = get_effective_settings()
     if not alerts_configured(settings):
         return
 
@@ -130,6 +135,28 @@ async def send_status_alert(
             monitor.id,
             exc,
         )
+
+
+async def send_test_email(settings: Settings | None = None) -> None:
+    """Send a one-off test message. Raises ValueError if not configured."""
+    from .app_settings import get_effective_settings
+
+    settings = settings or get_effective_settings()
+    if not alerts_configured(settings):
+        raise ValueError(
+            "Alerts are not fully configured. Enable alerts and set SMTP host plus recipients."
+        )
+
+    recipients = _recipients(settings)
+    msg = EmailMessage()
+    msg["Subject"] = "[Monitor] Test email"
+    msg["From"] = settings.alert_from
+    msg["To"] = ", ".join(recipients)
+    msg.set_content(
+        "This is a test email from ST Monitoring.\n\n"
+        "If you received this, SMTP settings are working."
+    )
+    await asyncio.to_thread(_send_smtp, settings, msg)
 
 
 async def maybe_alert_on_transition(

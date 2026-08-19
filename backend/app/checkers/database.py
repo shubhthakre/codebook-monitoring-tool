@@ -90,7 +90,7 @@ def _ensure_oracle_client() -> str:
     """Enable thick mode when Instant Client path is configured. Returns mode label."""
     global _oracle_client_initialized
     import oracledb
-    from ..config import get_settings
+    from ..services.app_settings import get_effective_settings
 
     if not oracledb.is_thin_mode():
         _oracle_client_initialized = True
@@ -99,7 +99,7 @@ def _ensure_oracle_client() -> str:
     if _oracle_client_initialized:
         return "thin"
 
-    lib_dir = (get_settings().oracle_client_lib_dir or "").strip()
+    lib_dir = (get_effective_settings().oracle_client_lib_dir or "").strip()
     if not lib_dir:
         return "thin"
 
@@ -113,8 +113,8 @@ def _oracle_error_hint(exc: Exception) -> str:
     if "DPY-3010" in text:
         return (
             "Oracle DB is 11g or older; python-oracledb thin mode cannot connect. "
-            "Install Oracle Instant Client, set ORACLE_CLIENT_LIB_DIR in backend/.env "
-            "to the Instant Client folder, then restart the backend."
+            "Install Oracle Instant Client, set the Instant Client path in Settings "
+            "(or ORACLE_CLIENT_LIB_DIR in backend/.env), then restart the backend."
         )
     if "DPY-6001" in text or "ORA-12514" in text:
         return (

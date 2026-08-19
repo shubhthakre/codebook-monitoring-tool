@@ -60,3 +60,28 @@ class CheckResult(Base):
     checked_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc), index=True
     )
+
+
+class AppSettings(Base):
+    """Singleton row (id=1) for UI-editable alert/SMTP/Oracle settings."""
+
+    __tablename__ = "app_settings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    alert_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    alert_to: Mapped[str] = mapped_column(String(1024), default="")
+    alert_from: Mapped[str] = mapped_column(String(255), default="monitoring@localhost")
+    alert_on_recovery: Mapped[bool] = mapped_column(Boolean, default=True)
+    alert_cooldown_seconds: Mapped[int] = mapped_column(Integer, default=300)
+    smtp_host: Mapped[str] = mapped_column(String(255), default="")
+    smtp_port: Mapped[int] = mapped_column(Integer, default=587)
+    smtp_user: Mapped[str] = mapped_column(String(255), default="")
+    smtp_password: Mapped[str] = mapped_column(String(512), default="")
+    smtp_use_tls: Mapped[bool] = mapped_column(Boolean, default=True)
+    smtp_use_ssl: Mapped[bool] = mapped_column(Boolean, default=False)
+    oracle_client_lib_dir: Mapped[str] = mapped_column(String(1024), default="")
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )

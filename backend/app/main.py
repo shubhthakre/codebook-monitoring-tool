@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import Base, engine
-from .routers import health, monitors
+from .routers import health, monitors, settings
 from .services.scheduler import start_scheduler, stop_scheduler
 
 logger = logging.getLogger(__name__)
@@ -52,3 +52,4 @@ app.add_middleware(
 
 app.include_router(health.router, prefix="/api")
 app.include_router(monitors.router, prefix="/api")
+app.include_router(settings.router, prefix="/api")

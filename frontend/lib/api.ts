@@ -52,6 +52,31 @@ export interface SystemdLogs {
   lines: string[];
 }
 
+export interface AppSettings {
+  alert_enabled: boolean;
+  alert_to: string;
+  alert_from: string;
+  alert_on_recovery: boolean;
+  alert_cooldown_seconds: number;
+  smtp_host: string;
+  smtp_port: number;
+  smtp_user: string;
+  smtp_password_set: boolean;
+  smtp_use_tls: boolean;
+  smtp_use_ssl: boolean;
+  oracle_client_lib_dir: string;
+  configured: boolean;
+  source: "ui" | "env" | string;
+  oracle_restart_required: boolean;
+}
+
+export type AppSettingsUpdate = Omit<
+  AppSettings,
+  "smtp_password_set" | "configured" | "source" | "oracle_restart_required"
+> & {
+  smtp_password?: string;
+};
+
 const API = "/api";
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -131,6 +156,16 @@ export const api = {
       `/monitors/${id}/logs${qs ? `?${qs}` : ""}`
     );
   },
+  getSettings: () => request<AppSettings>("/settings"),
+  updateSettings: (data: AppSettingsUpdate) =>
+    request<AppSettings>("/settings", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  testEmail: () =>
+    request<{ ok: boolean; message: string }>("/settings/test-email", {
+      method: "POST",
+    }),
 };
 
 export const MONITOR_TYPES: {

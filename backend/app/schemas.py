@@ -74,3 +74,41 @@ class SystemdLogsResponse(BaseModel):
     grep: str | None = None
     count: int
     lines: list[str]
+
+
+class SettingsResponse(BaseModel):
+    alert_enabled: bool
+    alert_to: str
+    alert_from: str
+    alert_on_recovery: bool
+    alert_cooldown_seconds: int
+    smtp_host: str
+    smtp_port: int
+    smtp_user: str
+    smtp_password_set: bool
+    smtp_use_tls: bool
+    smtp_use_ssl: bool
+    oracle_client_lib_dir: str
+    configured: bool
+    source: str
+    oracle_restart_required: bool = False
+
+
+class SettingsUpdate(BaseModel):
+    alert_enabled: bool
+    alert_to: str = ""
+    alert_from: str = "monitoring@localhost"
+    alert_on_recovery: bool = True
+    alert_cooldown_seconds: int = Field(default=300, ge=0)
+    smtp_host: str = ""
+    smtp_port: int = Field(default=587, ge=1, le=65535)
+    smtp_user: str = ""
+    smtp_password: str | None = None
+    smtp_use_tls: bool = True
+    smtp_use_ssl: bool = False
+    oracle_client_lib_dir: str = ""
+
+
+class TestEmailResponse(BaseModel):
+    ok: bool
+    message: str

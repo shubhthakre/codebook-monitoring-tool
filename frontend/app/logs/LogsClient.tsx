@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { api, Monitor, SystemdLogs } from "@/lib/api";
 import { copyTextToClipboard } from "@/lib/clipboard";
+import { useAdminUnlock } from "@/lib/useAdminUnlock";
 
 type LogPreset = "current" | "2min" | "5min" | "custom";
 
@@ -33,6 +34,7 @@ function safeFilenamePart(value: string): string {
 }
 
 export default function SystemdLogsPage() {
+  const { unlocked, handleTitleClick } = useAdminUnlock();
   const searchParams = useSearchParams();
   const initialId = searchParams.get("id");
 
@@ -176,7 +178,7 @@ export default function SystemdLogsPage() {
     <div className="container logs-page">
       <header className="header logs-header">
         <div className="brand-block">
-          <h1 className="brand">
+          <h1 className="brand" onClick={handleTitleClick}>
             Systemd <span>Logs</span>
           </h1>
           <p className="brand-sub">
@@ -188,6 +190,7 @@ export default function SystemdLogsPage() {
           <Link href="/logs" className="nav-active">
             Systemd Logs
           </Link>
+          {unlocked && <Link href="/settings">Settings</Link>}
         </nav>
       </header>
 
