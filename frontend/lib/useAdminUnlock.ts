@@ -4,21 +4,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 const STORAGE_KEY = "st-monitoring-admin";
 
+// Survives client-side navigation, resets on full page refresh.
+let adminUnlocked = false;
+
 export function useAdminUnlock() {
-  const [unlocked, setUnlocked] = useState(false);
-  const [ready, setReady] = useState(false);
+  const [unlocked, setUnlocked] = useState(adminUnlocked);
   const clicksRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     try {
-      if (sessionStorage.getItem(STORAGE_KEY) === "1") {
-        setUnlocked(true);
-      }
+      sessionStorage.removeItem(STORAGE_KEY);
     } catch {
       // ignore storage errors
-    } finally {
-      setReady(true);
     }
   }, []);
 
@@ -28,12 +26,8 @@ export function useAdminUnlock() {
     clicksRef.current += 1;
     if (clicksRef.current >= 5) {
       clicksRef.current = 0;
+      adminUnlocked = true;
       setUnlocked(true);
-      try {
-        sessionStorage.setItem(STORAGE_KEY, "1");
-      } catch {
-        // ignore storage errors
-      }
       return;
     }
     timerRef.current = setTimeout(() => {
@@ -41,5 +35,5 @@ export function useAdminUnlock() {
     }, 2000);
   }, [unlocked]);
 
-  return { unlocked, ready, handleTitleClick };
+  return { unlocked, ready: true, handleTitleClick };
 }
