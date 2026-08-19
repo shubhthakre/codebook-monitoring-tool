@@ -89,6 +89,8 @@ class SettingsResponse(BaseModel):
     smtp_use_tls: bool
     smtp_use_ssl: bool
     oracle_client_lib_dir: str
+    oracle_client_resolved: str = ""
+    oracle_client_platform: str = ""
     configured: bool
     source: str
     oracle_restart_required: bool = False

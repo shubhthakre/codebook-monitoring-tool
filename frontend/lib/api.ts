@@ -65,6 +65,8 @@ export interface AppSettings {
   smtp_use_tls: boolean;
   smtp_use_ssl: boolean;
   oracle_client_lib_dir: string;
+  oracle_client_resolved: string;
+  oracle_client_platform: string;
   configured: boolean;
   source: "ui" | "env" | string;
   oracle_restart_required: boolean;
@@ -72,7 +74,12 @@ export interface AppSettings {
 
 export type AppSettingsUpdate = Omit<
   AppSettings,
-  "smtp_password_set" | "configured" | "source" | "oracle_restart_required"
+  | "smtp_password_set"
+  | "configured"
+  | "source"
+  | "oracle_restart_required"
+  | "oracle_client_resolved"
+  | "oracle_client_platform"
 > & {
   smtp_password?: string;
 };

@@ -59,7 +59,12 @@ export default function SettingsPage() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [meta, setMeta] = useState<Pick<
     AppSettings,
-    "configured" | "source" | "smtp_password_set" | "oracle_restart_required"
+    | "configured"
+    | "source"
+    | "smtp_password_set"
+    | "oracle_restart_required"
+    | "oracle_client_resolved"
+    | "oracle_client_platform"
   > | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -78,6 +83,8 @@ export default function SettingsPage() {
         source: data.source,
         smtp_password_set: data.smtp_password_set,
         oracle_restart_required: data.oracle_restart_required,
+        oracle_client_resolved: data.oracle_client_resolved,
+        oracle_client_platform: data.oracle_client_platform,
       });
     } catch (err) {
       setError(
@@ -130,6 +137,8 @@ export default function SettingsPage() {
         source: data.source,
         smtp_password_set: data.smtp_password_set,
         oracle_restart_required: data.oracle_restart_required,
+        oracle_client_resolved: data.oracle_client_resolved,
+        oracle_client_platform: data.oracle_client_platform,
       });
       setSuccess(
         data.oracle_restart_required
@@ -320,11 +329,15 @@ export default function SettingsPage() {
                 onChange={(e) =>
                   patch("oracle_client_lib_dir", e.target.value)
                 }
-                placeholder="D:\\oracle\\instantclient_23_26"
+                placeholder="Leave empty to auto-select Windows or Linux Instant Client"
               />
               <small>
-                Folder containing oci.dll (Windows) or libclntsh. Required for
-                Oracle 11g. Changing this usually needs a backend restart.
+                Leave empty to auto-pick Instant Client from the backend folder
+                for this OS (Windows: oci.dll, Linux: libclntsh.so). Required
+                for Oracle 11g. Changing this usually needs a backend restart.
+                {meta?.oracle_client_resolved
+                  ? ` Currently using ${meta.oracle_client_platform || "this OS"}: ${meta.oracle_client_resolved}`
+                  : " No matching Instant Client found yet."}
               </small>
             </div>
           </section>

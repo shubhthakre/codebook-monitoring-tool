@@ -18,9 +18,12 @@ frontend/.next/
 frontend/out/
 frontend/.env*.local
 
-# Oracle Instant Client (large binaries — install separately)
+# Oracle Instant Client (large binaries — keep in the project, do not commit)
 backend/instantclient-*/
+backend/instantclient_*/
 backend/instantclient-*.zip
+backend/instantclient/**
+!backend/instantclient/README.md
 
 # OS / IDE
 .DS_Store

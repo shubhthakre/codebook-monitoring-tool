@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from ..config import Settings, get_settings
 from ..models import AppSettings
+from ..oracle_paths import current_oracle_platform, resolve_oracle_client_lib_dir
 from ..schemas import SettingsResponse, SettingsUpdate
 
 SINGLETON_ID = 1
@@ -70,6 +71,10 @@ def to_response(
         smtp_use_tls=settings.smtp_use_tls,
         smtp_use_ssl=settings.smtp_use_ssl,
         oracle_client_lib_dir=settings.oracle_client_lib_dir,
+        oracle_client_resolved=resolve_oracle_client_lib_dir(
+            settings.oracle_client_lib_dir
+        ),
+        oracle_client_platform=current_oracle_platform(),
         configured=alerts_configured(settings),
         source=source,
         oracle_restart_required=oracle_restart_required,
