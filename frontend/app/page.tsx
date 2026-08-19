@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   api,
   CheckResult,
@@ -113,9 +113,7 @@ function MonitorForm({ onClose, onSaved, editMonitor }: MonitorFormProps) {
                   </option>
                 ))}
               </select>
-              <small style={{ color: "var(--text-muted)" }}>
-                {typeDef.description}
-              </small>
+              <small>{typeDef.description}</small>
             </div>
           )}
 
@@ -227,9 +225,9 @@ function DetailPanel({ monitor, onClose, onRefresh }: DetailPanelProps) {
         style={{ maxWidth: 720 }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem" }}>
+        <div className="modal-title-row">
           <StatusDot status={monitor.last_status} />
-          <h2 style={{ margin: 0 }}>{monitor.name}</h2>
+          <h2>{monitor.name}</h2>
           <span className="badge">{monitor.type}</span>
         </div>
 
@@ -240,7 +238,7 @@ function DetailPanel({ monitor, onClose, onRefresh }: DetailPanelProps) {
             ` · ${monitor.last_response_ms.toFixed(0)}ms`}
         </p>
 
-        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.5rem" }}>
+        <div className="detail-actions">
           <button
             className="btn-primary btn-sm"
             onClick={handleCheck}
@@ -257,9 +255,7 @@ function DetailPanel({ monitor, onClose, onRefresh }: DetailPanelProps) {
           <>
             {logs.length > 0 && (
               <>
-                <h3 style={{ fontSize: "0.9375rem", marginBottom: "0.5rem" }}>
-                  Systemd Logs
-                </h3>
+                <h3 className="detail-section-title">Systemd Logs</h3>
                 <div className="log-viewer">{logs.join("\n")}</div>
               </>
             )}
@@ -273,9 +269,7 @@ function DetailPanel({ monitor, onClose, onRefresh }: DetailPanelProps) {
           </>
         )}
 
-        <h3 style={{ fontSize: "0.9375rem", margin: "1.5rem 0 0.5rem" }}>
-          Check History
-        </h3>
+        <h3 className="detail-section-title">Check History</h3>
         <table className="history-table">
           <thead>
             <tr>
@@ -293,7 +287,7 @@ function DetailPanel({ monitor, onClose, onRefresh }: DetailPanelProps) {
                   <StatusDot status={row.status} />
                 </td>
                 <td>{row.message}</td>
-                <td>
+                <td className="monitor-latency">
                   {row.response_ms != null
                     ? `${row.response_ms.toFixed(0)}ms`
                     : "—"}
@@ -302,7 +296,7 @@ function DetailPanel({ monitor, onClose, onRefresh }: DetailPanelProps) {
             ))}
             {history.length === 0 && (
               <tr>
-                <td colSpan={4} style={{ color: "var(--text-muted)" }}>
+                <td colSpan={4} style={{ color: "var(--muted)" }}>
                   No history yet
                 </td>
               </tr>
@@ -323,6 +317,23 @@ export default function Dashboard() {
   const [detailMonitor, setDetailMonitor] = useState<Monitor | null>(null);
   const [checkingId, setCheckingId] = useState<number | null>(null);
   const [actionsOpenId, setActionsOpenId] = useState<number | null>(null);
+  const [addUnlocked, setAddUnlocked] = useState(false);
+  const titleClicksRef = useRef(0);
+  const titleClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleTitleClick = () => {
+    if (addUnlocked) return;
+    if (titleClickTimerRef.current) clearTimeout(titleClickTimerRef.current);
+    titleClicksRef.current += 1;
+    if (titleClicksRef.current >= 5) {
+      titleClicksRef.current = 0;
+      setAddUnlocked(true);
+      return;
+    }
+    titleClickTimerRef.current = setTimeout(() => {
+      titleClicksRef.current = 0;
+    }, 2000);
+  };
 
   const refresh = useCallback(async () => {
     try {
@@ -384,10 +395,12 @@ export default function Dashboard() {
   return (
     <div className="container">
       <header className="header">
-        <div>
-          <h1>Codebook Monitoring</h1>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>
-            Servers · Databases · Systemd logs
+        <div className="brand-block">
+          <h1 className="brand" onClick={handleTitleClick}>
+            ST <span>Monitoring</span>
+          </h1>
+          <p className="brand-sub">
+            Live health checks for servers, databases, and services
           </p>
         </div>
         <div className="header-actions">
@@ -397,129 +410,175 @@ export default function Dashboard() {
             </Link>
             <Link href="/logs">Systemd Logs</Link>
           </nav>
-          <button className="btn-primary" onClick={() => setShowForm(true)}>
-            + Add Monitor
-          </button>
+          {addUnlocked && (
+            <button className="btn-primary" onClick={() => setShowForm(true)}>
+              + Add Monitor
+            </button>
+          )}
         </div>
       </header>
 
       {error && <div className="error-banner">{error}</div>}
 
       {!loading && (
-        <div className="summary-grid">
-          <div className="summary-card">
+        <div className="status-ribbon">
+          <div className="status-pill">
             <div className="value">{summary.total}</div>
-            <div className="label">Total</div>
+            <div className="label">Monitor servers</div>
           </div>
-          <div className="summary-card up">
+          <div className="status-pill up">
             <div className="value">{summary.up}</div>
-            <div className="label">Up</div>
+            <div className="label">Up servers</div>
           </div>
-          <div className="summary-card down">
+          <div className="status-pill down">
             <div className="value">{summary.down}</div>
-            <div className="label">Down</div>
+            <div className="label">Down servers</div>
+          </div>
+          <div className="status-pill live">
+            <div className="live-badge">
+              <span className="live-pulse" />
+              Live
+            </div>
           </div>
         </div>
       )}
 
+      {!loading && dashboardMonitors.length > 0 && (
+        <div className="section-label">
+          <h2>Endpoints</h2>
+          <p>Click a card for history · auto-refresh every 15s</p>
+        </div>
+      )}
+
       {loading ? (
-        <p style={{ color: "var(--text-muted)" }}>Loading...</p>
+        <p className="loading-state">Loading monitors…</p>
       ) : dashboardMonitors.length === 0 ? (
         <div className="empty-state">
           <p>No monitors configured yet.</p>
-          <button
-            className="btn-primary"
-            style={{ marginTop: "1rem" }}
-            onClick={() => setShowForm(true)}
-          >
-            Add your first monitor
-          </button>
+          {addUnlocked && (
+            <button
+              className="btn-primary"
+              style={{ marginTop: "1rem" }}
+              onClick={() => setShowForm(true)}
+            >
+              Add your first monitor
+            </button>
+          )}
         </div>
       ) : (
         <div className="monitor-list">
           {dashboardMonitors.map((m) => (
-            <div className="monitor-card" key={m.id}>
+            <div
+              className={`monitor-card${m.last_status === "down" ? " is-down" : ""}${!m.enabled ? " is-disabled" : ""}`}
+              key={m.id}
+            >
               <div
                 className="monitor-card-header"
                 style={{ cursor: "pointer" }}
                 onClick={() => setDetailMonitor(m)}
               >
-                <StatusDot status={m.last_status} />
+                <div className="monitor-card-top">
+                  <StatusDot status={m.last_status} />
+                  <div
+                    className="monitor-actions"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      className="btn-secondary btn-sm btn-icon"
+                      onClick={() => handleCheck(m.id)}
+                      disabled={checkingId === m.id}
+                      aria-label="Check"
+                      title="Check now"
+                    >
+                      {checkingId === m.id ? (
+                        "…"
+                      ) : (
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
+                    </button>
+                    <div className="monitor-actions-menu">
+                      <button
+                        className="btn-secondary btn-sm"
+                        aria-expanded={actionsOpenId === m.id}
+                        aria-label="More actions"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActionsOpenId(actionsOpenId === m.id ? null : m.id);
+                        }}
+                      >
+                        ⋯
+                      </button>
+                      {actionsOpenId === m.id && (
+                        <div className="monitor-actions-dropdown">
+                          <button
+                            className="btn-secondary btn-sm"
+                            onClick={() => {
+                              setEditMonitor(m);
+                              setShowForm(true);
+                              setActionsOpenId(null);
+                            }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="btn-secondary btn-sm"
+                            onClick={() => {
+                              handleToggle(m);
+                              setActionsOpenId(null);
+                            }}
+                          >
+                            {m.enabled ? "Disable" : "Enable"}
+                          </button>
+                          <button
+                            className="btn-danger btn-sm"
+                            onClick={() => {
+                              handleDelete(m.id);
+                              setActionsOpenId(null);
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
                 <div className="monitor-info">
                   <h3>{m.name}</h3>
                   <div className="monitor-meta">
-                    <span className="badge">{m.type}</span>
-                    <span className="monitor-meta-sep">·</span>
-                    <span>{m.last_message ?? "Not checked yet"}</span>
-                    <span className="monitor-meta-sep">·</span>
-                    <span>{formatTime(m.last_checked_at)}</span>
-                    {m.last_response_ms != null && (
-                      <>
-                        <span className="monitor-meta-sep">·</span>
-                        <span>{m.last_response_ms.toFixed(0)}ms</span>
-                      </>
-                    )}
-                    {!m.enabled && (
-                      <>
-                        <span className="monitor-meta-sep">·</span>
-                        <span>Disabled</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="monitor-actions">
-                <button
-                  className="btn-secondary btn-sm"
-                  onClick={() => handleCheck(m.id)}
-                  disabled={checkingId === m.id}
-                >
-                  {checkingId === m.id ? "..." : "Check"}
-                </button>
-                <div className="monitor-actions-menu">
-                  <button
-                    className="btn-secondary btn-sm"
-                    aria-expanded={actionsOpenId === m.id}
-                    aria-label="More actions"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActionsOpenId(actionsOpenId === m.id ? null : m.id);
-                    }}
-                  >
-                    ⋯
-                  </button>
-                  {actionsOpenId === m.id && (
-                    <div className="monitor-actions-dropdown">
-                      <button
-                        className="btn-secondary btn-sm"
-                        onClick={() => {
-                          setEditMonitor(m);
-                          setShowForm(true);
-                          setActionsOpenId(null);
-                        }}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="btn-secondary btn-sm"
-                        onClick={() => {
-                          handleToggle(m);
-                          setActionsOpenId(null);
-                        }}
-                      >
-                        {m.enabled ? "Disable" : "Enable"}
-                      </button>
-                      <button
-                        className="btn-danger btn-sm"
-                        onClick={() => {
-                          handleDelete(m.id);
-                          setActionsOpenId(null);
-                        }}
-                      >
-                        Delete
-                      </button>
+                    <div className="monitor-meta-row">
+                      <span className="badge">{m.type}</span>
+                      {!m.enabled && (
+                        <span className="badge badge-disabled">Disabled</span>
+                      )}
                     </div>
-                  )}
+                    <div className="monitor-meta-row">
+                      <span>{m.last_message ?? "Not checked yet"}</span>
+                    </div>
+                    <div className="monitor-meta-row">
+                      <span>{formatTime(m.last_checked_at)}</span>
+                      {m.last_response_ms != null && (
+                        <>
+                          <span className="monitor-meta-sep">·</span>
+                          <span className="monitor-latency">
+                            {m.last_response_ms.toFixed(0)}ms
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

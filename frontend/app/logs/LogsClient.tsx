@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { api, Monitor, SystemdLogs } from "@/lib/api";
+import { copyTextToClipboard } from "@/lib/clipboard";
 
 type LogPreset = "current" | "2min" | "5min" | "custom";
 
@@ -27,6 +28,10 @@ function presetSince(preset: LogPreset): string | undefined {
   }
 }
 
+function safeFilenamePart(value: string): string {
+  return value.replace(/[^\w.-]+/g, "_").replace(/^_+|_+$/g, "") || "service";
+}
+
 export default function SystemdLogsPage() {
   const searchParams = useSearchParams();
   const initialId = searchParams.get("id");
@@ -44,6 +49,9 @@ export default function SystemdLogsPage() {
   const [listLoading, setListLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [logs, setLogs] = useState<SystemdLogs | null>(null);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">(
+    "idle"
+  );
 
   const systemdMonitors = useMemo(
     () => monitors.filter((m) => m.type === "systemd"),
@@ -51,6 +59,12 @@ export default function SystemdLogsPage() {
   );
 
   const selected = systemdMonitors.find((m) => m.id === selectedId) ?? null;
+
+  const logText = useMemo(
+    () => (logs?.lines?.length ? logs.lines.join("\n") : ""),
+    [logs]
+  );
+  const hasLogText = logText.length > 0;
 
   const grepFromMonitor = (m: Monitor | null | undefined) =>
     typeof m?.config?.grep === "string" ? m.config.grep : "";
@@ -83,6 +97,7 @@ export default function SystemdLogsPage() {
     if (!selectedId) return;
     setLoading(true);
     setError(null);
+    setCopyState("idle");
 
     try {
       let since: string | undefined;
@@ -122,13 +137,50 @@ export default function SystemdLogsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId, preset, listLoading]);
 
+  useEffect(() => {
+    const prevHtml = document.documentElement.style.overflow;
+    const prevBody = document.body.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.documentElement.style.overflow = prevHtml;
+      document.body.style.overflow = prevBody;
+    };
+  }, []);
+
+  const handleCopy = useCallback(async () => {
+    if (!hasLogText) return;
+    const ok = await copyTextToClipboard(logText);
+    setCopyState(ok ? "copied" : "failed");
+    window.setTimeout(() => setCopyState("idle"), ok ? 1800 : 2200);
+  }, [hasLogText, logText]);
+
+  const handleDownload = useCallback(() => {
+    if (!hasLogText) return;
+    const unit =
+      typeof selected?.config?.unit === "string"
+        ? selected.config.unit
+        : selected?.name || "systemd";
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+    const filename = `${safeFilenamePart(unit)}-${stamp}.log`;
+    const blob = new Blob([logText], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [hasLogText, logText, selected]);
+
   return (
-    <div className="container">
-      <header className="header">
-        <div>
-          <h1>Systemd Logs</h1>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>
-            Current · 2 min · 5 min · custom timestamp
+    <div className="container logs-page">
+      <header className="header logs-header">
+        <div className="brand-block">
+          <h1 className="brand">
+            Systemd <span>Logs</span>
+          </h1>
+          <p className="brand-sub">
+            Journal output by service · current, recent, or custom range
           </p>
         </div>
         <nav className="nav-links">
@@ -142,7 +194,7 @@ export default function SystemdLogsPage() {
       {error && <div className="error-banner">{error}</div>}
 
       {listLoading ? (
-        <p style={{ color: "var(--text-muted)" }}>Loading services...</p>
+        <p className="loading-state">Loading services…</p>
       ) : systemdMonitors.length === 0 ? (
         <div className="empty-state">
           <p>No systemd monitors configured yet.</p>
@@ -151,11 +203,11 @@ export default function SystemdLogsPage() {
             className="btn-primary"
             style={{ display: "inline-block", marginTop: "1rem" }}
           >
-            Add a Systemd Logs monitor
+            Back to dashboard
           </Link>
         </div>
       ) : (
-        <>
+        <div className="logs-body">
           <div className="logs-toolbar">
             <div className="form-group" style={{ marginBottom: 0, minWidth: 220 }}>
               <label>Service</label>
@@ -215,7 +267,10 @@ export default function SystemdLogsPage() {
               />
             </div>
 
-            <div className="form-group" style={{ marginBottom: 0, minWidth: 220, flex: 1 }}>
+            <div
+              className="form-group"
+              style={{ marginBottom: 0, minWidth: 220, flex: 1 }}
+            >
               <label>Grep filter</label>
               <input
                 type="text"
@@ -305,34 +360,55 @@ export default function SystemdLogsPage() {
                   )}
                 </>
               )}
-              {preset !== "custom" && (
+              <div className="logs-actions">
+                {preset !== "custom" && (
+                  <button
+                    type="button"
+                    className="btn-secondary btn-sm"
+                    onClick={() => void fetchLogs()}
+                    disabled={loading}
+                  >
+                    {loading ? "Refreshing..." : "Refresh"}
+                  </button>
+                )}
                 <button
                   type="button"
                   className="btn-secondary btn-sm"
-                  onClick={() => void fetchLogs()}
-                  disabled={loading}
-                  style={{ marginLeft: "auto" }}
+                  onClick={() => void handleCopy()}
+                  disabled={!hasLogText}
                 >
-                  {loading ? "Refreshing..." : "Refresh"}
+                  {copyState === "copied"
+                    ? "Copied"
+                    : copyState === "failed"
+                      ? "Copy failed"
+                      : "Copy logs"}
                 </button>
-              )}
+                <button
+                  type="button"
+                  className="btn-secondary btn-sm"
+                  onClick={handleDownload}
+                  disabled={!hasLogText}
+                >
+                  Download
+                </button>
+              </div>
             </div>
           )}
 
-          <div className="log-viewer log-viewer-tall">
+          <div className="log-viewer log-viewer-fill">
             {loading && !logs ? (
-              <span style={{ color: "var(--text-muted)" }}>Fetching logs...</span>
+              <span style={{ color: "#8aa0ae" }}>Fetching logs...</span>
             ) : logs && logs.lines.length > 0 ? (
               logs.lines.join("\n")
             ) : (
-              <span style={{ color: "var(--text-muted)" }}>
+              <span style={{ color: "#8aa0ae" }}>
                 {logs
                   ? "No log lines for this range."
                   : "Select a service and time range."}
               </span>
             )}
           </div>
-        </>
+        </div>
       )}
     </div>
   );

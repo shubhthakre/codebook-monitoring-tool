@@ -142,3 +142,4 @@ async def _check_unit_active(unit: str) -> bool:
     )
     stdout, _ = await proc.communicate()
     return stdout.decode().strip() == "active"
+

@@ -1,4 +1,4 @@
-# Codebook Monitoring Tool
+# Monitoring Tool
 
 A lightweight health-check dashboard for servers, databases, Oracle, SQLite, and systemd service logs.
 
@@ -10,7 +10,7 @@ A lightweight health-check dashboard for servers, databases, Oracle, SQLite, and
 
 ## Features
 
-- Add monitors for HTTP endpoints, TCP ports, PostgreSQL, MySQL, SQLite, Oracle, and systemd logs
+- Add monitors for HTTP endpoints, TCP ports, PostgreSQL, MySQL, SQLite, Oracle, systemd logs, SMTP, and Microsoft Graph
 - Automatic periodic checks with configurable intervals
 - Manual "Check Now" with response time tracking
 - Check history per monitor
@@ -35,11 +35,13 @@ docker compose up --build -d
 # docker-compose up --build -d
 ```
 
-| Service  | URL |
-|----------|-----|
-| Frontend | [http://localhost:3000](http://localhost:3000) |
-| Backend API | [http://localhost:8000](http://localhost:8000) |
-| API docs | [http://localhost:8000/docs](http://localhost:8000/docs) |
+
+| Service     | URL                                                      |
+| ----------- | -------------------------------------------------------- |
+| Frontend    | [http://localhost:3000](http://localhost:3000)           |
+| Backend API | [http://localhost:8000](http://localhost:8000)           |
+| API docs    | [http://localhost:8000/docs](http://localhost:8000/docs) |
+
 
 Useful commands:
 
@@ -57,7 +59,11 @@ Docker files:
 - `backend/Dockerfile` — FastAPI / Uvicorn
 - `frontend/Dockerfile` — Next.js (standalone production build)
 
+
+
 ## Quick Start (local, without Docker)
+
+
 
 ### 1. Backend
 
@@ -89,6 +95,8 @@ pip install pymysql           # MySQL
 pip install oracledb          # Oracle
 ```
 
+
+
 ### 2. Frontend
 
 ```bash
@@ -103,15 +111,21 @@ API docs: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ## Monitor Types
 
-| Type       | Config fields                                      |
-|------------|----------------------------------------------------|
-| `http`     | url, method, expected_status, timeout              |
-| `tcp`      | host, port, timeout                                |
-| `postgres` | host, port, database, user, password, query        |
-| `mysql`    | host, port, database, user, password, query        |
-| `sqlite`   | path, query                                        |
-| `oracle`   | host, port, service_name, user, password, dsn      |
+
+| Type       | Config fields                                                    |
+| ---------- | ---------------------------------------------------------------- |
+| `http`     | url, method, expected_status, timeout                            |
+| `tcp`      | host, port, timeout                                              |
+| `postgres` | host, port, database, user, password, query                      |
+| `mysql`    | host, port, database, user, password, query                      |
+| `sqlite`   | path, query                                                      |
+| `oracle`   | host, port, service_name, user, password, dsn                    |
 | `systemd`  | unit, lines, since, grep (optional PCRE via `journalctl --grep`) |
+| `smtp`     | host, port, user, password, use_tls, use_ssl, timeout            |
+| `graph`    | tenant_id, client_id, client_secret, scope, endpoint, timeout    |
+
+
+
 
 ## Email Alerts
 
@@ -120,17 +134,19 @@ When a monitor transitions to **down**, the backend can send an email. A recover
 1. Copy `backend/.env.example` to `backend/.env`
 2. Set SMTP and recipient values:
 
-| Variable | Description |
-|----------|-------------|
-| `ALERT_ENABLED` | `true` to turn alerts on |
-| `ALERT_TO` | Comma-separated recipient emails |
-| `ALERT_FROM` | From address |
-| `ALERT_ON_RECOVERY` | Also email when service recovers (`true`/`false`) |
-| `ALERT_COOLDOWN_SECONDS` | Min seconds between repeated down alerts (default `300`) |
-| `SMTP_HOST` / `SMTP_PORT` | SMTP server |
-| `SMTP_USER` / `SMTP_PASSWORD` | SMTP auth (leave empty if none) |
-| `SMTP_USE_TLS` | STARTTLS (typical for port 587) |
-| `SMTP_USE_SSL` | Implicit SSL (typical for port 465) |
+
+| Variable                      | Description                                              |
+| ----------------------------- | -------------------------------------------------------- |
+| `ALERT_ENABLED`               | `true` to turn alerts on                                 |
+| `ALERT_TO`                    | Comma-separated recipient emails                         |
+| `ALERT_FROM`                  | From address                                             |
+| `ALERT_ON_RECOVERY`           | Also email when service recovers (`true`/`false`)        |
+| `ALERT_COOLDOWN_SECONDS`      | Min seconds between repeated down alerts (default `300`) |
+| `SMTP_HOST` / `SMTP_PORT`     | SMTP server                                              |
+| `SMTP_USER` / `SMTP_PASSWORD` | SMTP auth (leave empty if none)                          |
+| `SMTP_USE_TLS`                | STARTTLS (typical for port 587)                          |
+| `SMTP_USE_SSL`                | Implicit SSL (typical for port 465)                      |
+
 
 Alerts fire only on status **transitions** (not on every failed check). Email failures are logged and do not break health checks.
 
@@ -146,6 +162,8 @@ SMTP_USER=you@example.com
 SMTP_PASSWORD=your-app-password
 SMTP_USE_TLS=true
 ```
+
+
 
 ## Systemd Notes
 
@@ -174,6 +192,8 @@ frontend/
   app/            # Next.js pages
   lib/api.ts      # API client + monitor type definitions
 ```
+
+
 
 ## License
 

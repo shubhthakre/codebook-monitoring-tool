@@ -5,7 +5,9 @@ export type MonitorType =
   | "mysql"
   | "sqlite"
   | "oracle"
-  | "systemd";
+  | "systemd"
+  | "smtp"
+  | "graph";
 
 export interface Monitor {
   id: number;
@@ -221,6 +223,64 @@ export const MONITOR_TYPES: {
         label: "Grep filter",
         placeholder: "error|warning (optional PCRE)",
       },
+    ],
+  },
+  {
+    value: "smtp",
+    label: "SMTP",
+    description: "Test SMTP server connection (and optional login) without sending mail",
+    fields: [
+      { key: "host", label: "Host", placeholder: "smtp.example.com", required: true },
+      { key: "port", label: "Port", placeholder: "587" },
+      { key: "user", label: "User (optional)" },
+      { key: "password", label: "Password (optional)", type: "password" },
+      {
+        key: "use_tls",
+        label: "STARTTLS (true/false)",
+        placeholder: "true (typical for 587)",
+      },
+      {
+        key: "use_ssl",
+        label: "SSL (true/false)",
+        placeholder: "false (true for port 465)",
+      },
+      { key: "timeout", label: "Timeout (sec)", placeholder: "10" },
+    ],
+  },
+  {
+    value: "graph",
+    label: "Microsoft Graph",
+    description: "OAuth client-credentials token + Graph API call",
+    fields: [
+      {
+        key: "tenant_id",
+        label: "Tenant ID",
+        placeholder: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+        required: true,
+      },
+      {
+        key: "client_id",
+        label: "Client ID (App ID)",
+        placeholder: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+        required: true,
+      },
+      {
+        key: "client_secret",
+        label: "Client Secret",
+        type: "password",
+        required: true,
+      },
+      {
+        key: "scope",
+        label: "Scope",
+        placeholder: "https://graph.microsoft.com/.default",
+      },
+      {
+        key: "endpoint",
+        label: "Graph endpoint",
+        placeholder: "https://graph.microsoft.com/v1.0/",
+      },
+      { key: "timeout", label: "Timeout (sec)", placeholder: "15" },
     ],
   },
 ];

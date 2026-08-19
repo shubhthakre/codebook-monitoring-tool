@@ -11,6 +11,8 @@ from ..checkers import (
     check_mysql,
     check_oracle,
     check_systemd,
+    check_smtp,
+    check_graph,
 )
 from ..checkers.base import CheckOutcome
 from .alerts import maybe_alert_on_transition
@@ -23,6 +25,8 @@ CHECKERS = {
     "mysql": check_mysql,
     "oracle": check_oracle,
     "systemd": check_systemd,
+    "smtp": check_smtp,
+    "graph": check_graph,
 }
 
 

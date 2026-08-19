@@ -15,6 +15,8 @@ class MonitorType(str, enum.Enum):
     SQLITE = "sqlite"
     ORACLE = "oracle"
     SYSTEMD = "systemd"
+    SMTP = "smtp"
+    GRAPH = "graph"
 
 
 class MonitorStatus(str, enum.Enum):
